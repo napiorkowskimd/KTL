@@ -4,6 +4,7 @@ import re
 from random import randint
 from itertools import zip_longest
 from shutil import get_terminal_size
+from operator import itemgetter
 
 def clear_screen():
     platform = sys.platform
@@ -12,7 +13,36 @@ def clear_screen():
     if platform in ("win32"):
         os.system("cls")
 
-
+def get_LLAP(numbers):
+    n = len(numbers)
+    if n <= 2:
+        return n
+    
+    llap = 2
+    L = [x[:] for x in [[0]*n]*n]
+    for i in range(n):
+        L[i][-1] = 2
+        
+    for j in range(n-2, 0, -1):
+        i, k = j-1, j+1
+        while i >= 0 and k <= n-1:
+            if numbers[i] + numbers[k] < 2*numbers[j]:
+                k = k+1
+            elif numbers[i] + numbers[k] > 2*numbers[j]:
+                L[i][j] = 2
+                i = i - 1
+            else:
+                L[i][j] = L[j][k] + 1
+                llap = max(llap, L[i][j])
+                i = i - 1
+                k = k + 1
+        
+        while i >= 0:
+            L[i][j] = 2
+            i = i - 1
+    
+    return llap
+    
 class Stage(object):
     def __init__(self):
         self.game_config = None
@@ -135,6 +165,12 @@ class Game(Stage):
         self.plansza = dict()
         self.strategie = (self.stategia_po_kolei, self.stategia_losowa, self.stategia_losowa)
 
+    def get_color(self, color):
+        return list(map(itemgetter(0), filter(lambda kc: kc[1]==color, self.plansza.items())))
+    
+    
+    
+        
     def draw(self):
         plansza = sorted(self.plansza.items())
         _, rows = get_terminal_size()
@@ -176,23 +212,27 @@ class Game(Stage):
             t = randint(0, 500)
         return t
 
-    def win(self):
+    def ai_win(self):
+        for c in range(1, self.config["C"]):
+            if get_LLAP(self.get_color(c)) >= self.config["K"]:
+                return True
         return False
-
+        
     def run(self, *args):
         strategia = self.strategie[int(self.config["Strategia"]) - 1]
         self.plansza = {}
         game_time = 0
         while True:
-            if(self.win()):
-                return True
-            if(game_time > self.config["L"]):
+            if(self.ai_win()):
                 return False
+            if(game_time > self.config["L"]):
+                return True
             t = strategia()
             self.plansza[t] = None
 
             clear_screen()
             self.draw()
+
             try:
                 while True:
                     try:
