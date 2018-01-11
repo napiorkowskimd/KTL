@@ -166,6 +166,8 @@ class Game(Stage):
         self.strategie = (self.strategia_po_kolei, self.strategia_losowa, self.strategia_sprytna)
         self.naj_ciag = 0
         self.game_time = 0
+        self.N = 10
+        self.k = 1
 
     def get_color(self, color):
         return list(map(itemgetter(0), filter(lambda kc: kc[1]==color, self.plansza.items())))
@@ -184,7 +186,10 @@ class Game(Stage):
 
         lines = list(zip_longest(*batches))
 
-        print("Najdłuższy ciąg ma długość {}, pozostało {} ruchów".format(self.naj_ciag, self.config["L"] - self.game_time))
+        print("Najdłuższy ciąg ma długość {} / {}, ruchy do wykorzystania: {}"
+                .format(self.naj_ciag,
+                        self.config["K"],
+                        self.config["L"] - self.game_time))
         for l in lines:
             s = ""
             for p in l:
@@ -210,9 +215,9 @@ class Game(Stage):
         return max_t + 1
 
     def strategia_losowa(self):
-        t = randint(0, 500)
+        t = randint(0, 2*self.config["L"] + 1)
         while t in self.plansza:
-            t = randint(0, 500)
+            t = randint(0, 2*self.config["L"] + 1)
         return t
 
     def strategia_sprytna(self):
@@ -220,7 +225,10 @@ class Game(Stage):
         ans = -1
         max_score = 0
         goal = self.config["K"]
-        for p in range(2*max(self.plansza, default=2) + 1):
+        if len(self.plansza) == 0:
+            return randint(0, 500)
+
+        for p in range(500):
             if p in self.plansza:
                 continue
             score = 0
@@ -238,7 +246,7 @@ class Game(Stage):
                 ans = p
 
         if ans == -1:
-            return max(self.plansza)+1
+            return max(self.plansza, default=0)+1
 
         return ans
 
@@ -260,11 +268,29 @@ class Game(Stage):
         self.plansza = {}
         self.game_time = 0
         self.naj_ciag = 0
+        end_game = False
+        win = False
         while True:
-            if(self.ai_win()):
-                return False
-            if(self.game_time >= self.config["L"]):
-                return True
+            if end_game:
+                clear_screen()
+                self.draw()
+                if win:
+                    cmd = input(u"Gratulacje!! Wygrałeś. Naciśnij dowolny przycisk, aby kontynuować")
+                    return True
+                else:
+                    cmd = input(u"Niestety przegrałeś. Naciśnij dowolny przycisk, aby kontynuować")
+                    return False
+
+            if self.ai_win():
+                win = False
+                end_game = True
+                continue
+
+            if self.game_time >= self.config["L"]:
+                win = True
+                end_game = True
+                continue
+
             t = strategia()
             self.plansza[t] = None
 
@@ -283,15 +309,13 @@ class Game(Stage):
                         self.draw()
                 self.plansza[t] = cmd
             except KeyboardInterrupt:
-                return False
+                win = False
+                end_game = True
+                continue
             self.game_time = self.game_time + 1
 
 class Retry(Stage):
     def draw(self, win):
-        if win:
-            print(u"Gratulacje!! Wygrałeś")
-        else:
-            print(u"Niestety przegrałeś")
         print(u"Dziękujemy za grę!!")
 
     def run(self, *args):
@@ -304,7 +328,7 @@ class GameLogic(object):
     def __init__(self):
         self.stages = dict()
         self._plan = list()
-        self.config = dict(K=5, C=3, L=100, Strategia="3")
+        self.config = dict(K=5, C=3, L=10, Strategia="3")
         self.name_counter = 1
 
     def add_screens(self, *args):
