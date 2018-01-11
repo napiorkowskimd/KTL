@@ -8,21 +8,21 @@ from operator import itemgetter
 
 def clear_screen():
     platform = sys.platform
-    if platform in ("linux", "unix", "darwin", "cygwin"):
-        os.system("clear")
-    if platform in ("win32"):
-        os.system("cls")
+    if platform in (u"linux", "unix", "darwin", "cygwin"):
+        os.system(u"clear")
+    if platform in (u"win32"):
+        os.system(u"cls")
 
 def get_LLAP(numbers):
     n = len(numbers)
     if n <= 2:
         return n
-    
+
     llap = 2
     L = [x[:] for x in [[0]*n]*n]
     for i in range(n):
         L[i][-1] = 2
-        
+
     for j in range(n-2, 0, -1):
         i, k = j-1, j+1
         while i >= 0 and k <= n-1:
@@ -36,13 +36,13 @@ def get_LLAP(numbers):
                 llap = max(llap, L[i][j])
                 i = i - 1
                 k = k + 1
-        
+
         while i >= 0:
             L[i][j] = 2
             i = i - 1
-    
+
     return llap
-    
+
 class Stage(object):
     def __init__(self):
         self.game_config = None
@@ -63,13 +63,13 @@ class Welcome(Stage):
         super().__init__()
 
     def draw(self):
-        print("Witamy w grze Szemeredi online")
-        print("Mamy nadzieję, że będzie się podobać!!!")
+        print(u"Witamy w grze Szemeredi online")
+        print(u"Mamy nadzieję, że będzie się podobać!!!")
 
     def run(self, *args, **kwargs):
         clear_screen()
         self.draw()
-        input("Wciśnij <enter> aby kontynuować ")
+        input(u"Wciśnij <enter> aby kontynuować ")
         return ""
 
 
@@ -78,17 +78,17 @@ class Level(Stage):
         super().__init__()
 
     def draw(self):
-        print("Wybierz strategie komputera")
-        print("Wybieranie liczb po kolei (1)")
-        print("Strategia losowa (2)")
-        print("Strategia trudniejsza (3)")
+        print(u"Wybierz strategie komputera")
+        print(u"Wybieranie liczb po kolei (1)")
+        print(u"Strategia losowa (2)")
+        print(u"Strategia trudniejsza (3)")
 
     def run(self, *args, **kwargs):
         cmd = ""
         while cmd not in ["1", "2", "3"]:
             clear_screen()
             self.draw()
-            cmd = input("Wybierz 1, 2 lub 3: ")
+            cmd = input(u"Wybierz 1, 2 lub 3: ")
         self.config["Strategia"] = cmd
         return cmd
 
@@ -98,14 +98,14 @@ class Colors(Stage):
         super().__init__()
         self.prompt = ">> "
     def draw(self):
-        print("Wybierz Liczbe kolorów komputera")
+        print(u"Wybierz liczbe dostępnych kolorów")
 
     def run(self, *args):
         cmd = ""
         while True:
             clear_screen()
             self.draw()
-            cmd = input("Wpisz liczbę z przedziału [1, ..., inf]: ")
+            cmd = input(u"Wpisz liczbę z przedziału [1, ..., inf]: ")
             try:
                 cmd = int(cmd)
                 break
@@ -120,14 +120,14 @@ class Length(Stage):
         super().__init__()
 
     def draw(self):
-        print("Wybierz Długość Gry")
+        print(u"Wybierz długość gry")
 
     def run(self, *args):
         cmd = ""
         while True:
             clear_screen()
             self.draw()
-            cmd = input("Wpisz liczbę z przedziału [1, ..., inf]: ")
+            cmd = input(u"Wpisz liczbę z przedziału [1, ..., 500]: ")
             try:
                 cmd = int(cmd)
                 break
@@ -142,14 +142,14 @@ class KLength(Stage):
         super().__init__()
 
     def draw(self):
-        print("Wybierz Długość Ciągu")
+        print(u"Wybierz długość ciągu")
 
     def run(self, *args, **kwargs):
         cmd = ""
         while True:
             clear_screen()
             self.draw()
-            cmd = input("Wpisz liczbę z przedziału [1, ..., inf]: ")
+            cmd = input(u"Wpisz liczbę z przedziału [1, ..., inf]: ")
             try:
                 cmd = int(cmd)
                 break
@@ -163,14 +163,16 @@ class Game(Stage):
     def __init__(self):
         super().__init__()
         self.plansza = dict()
-        self.strategie = (self.stategia_po_kolei, self.stategia_losowa, self.stategia_losowa)
+        self.strategie = (self.strategia_po_kolei, self.strategia_losowa, self.strategia_sprytna)
+        self.naj_ciag = 0
+        self.game_time = 0
 
     def get_color(self, color):
         return list(map(itemgetter(0), filter(lambda kc: kc[1]==color, self.plansza.items())))
-    
-    
-    
-        
+
+    def color_iter(self):
+        return iter(range(1, self.config["C"] + 1))
+
     def draw(self):
         plansza = sorted(self.plansza.items())
         _, rows = get_terminal_size()
@@ -182,6 +184,7 @@ class Game(Stage):
 
         lines = list(zip_longest(*batches))
 
+        print("Najdłuższy ciąg ma długość {}, pozostało {} ruchów".format(self.naj_ciag, self.config["L"] - self.game_time))
         for l in lines:
             s = ""
             for p in l:
@@ -196,36 +199,71 @@ class Game(Stage):
                     col_str = col_str + " " * (2-len(col_str))
                     s = s + "   {}: {}".format(num_str, col_str)
             print(s)
-            print("    ....  "*len(l))
+            print(u"    ....  "*len(l))
 
 
 
-    def stategia_po_kolei(self):
+    def strategia_po_kolei(self):
         if len(self.plansza) == 0:
             return 0
         max_t = max(self.plansza)
         return max_t + 1
 
-    def stategia_losowa(self):
+    def strategia_losowa(self):
         t = randint(0, 500)
         while t in self.plansza:
             t = randint(0, 500)
         return t
 
+    def strategia_sprytna(self):
+        MAX_KROK = 6
+        ans = -1
+        max_score = 0
+        goal = self.config["K"]
+        for p in range(2*max(self.plansza, default=2) + 1):
+            if p in self.plansza:
+                continue
+            score = 0
+            for c in self.color_iter():
+                ciag = self.get_color(c)
+                new_ciag = sorted(ciag + [p])
+                dlugosc_ciagu = get_LLAP(new_ciag)
+                if dlugosc_ciagu >= goal:
+                    score = score + 2*dlugosc_ciagu
+                else:
+                    score = score + dlugosc_ciagu
+                # import pdb; pdb.set_trace()
+            if score > max_score:
+                max_score = score
+                ans = p
+
+        if ans == -1:
+            return max(self.plansza)+1
+
+        return ans
+
     def ai_win(self):
-        for c in range(1, self.config["C"]):
-            if get_LLAP(self.get_color(c)) >= self.config["K"]:
-                return True
+        naj_ciag = 0
+        for c in self.color_iter():
+            naj_ciag_c = get_LLAP(self.get_color(c))
+            if naj_ciag_c > naj_ciag:
+                naj_ciag = naj_ciag_c
+
+        self.naj_ciag = naj_ciag
+        if self.naj_ciag >= self.config["K"]:
+            return True
+
         return False
-        
+
     def run(self, *args):
         strategia = self.strategie[int(self.config["Strategia"]) - 1]
         self.plansza = {}
-        game_time = 0
+        self.game_time = 0
+        self.naj_ciag = 0
         while True:
             if(self.ai_win()):
                 return False
-            if(game_time > self.config["L"]):
+            if(self.game_time >= self.config["L"]):
                 return True
             t = strategia()
             self.plansza[t] = None
@@ -236,7 +274,7 @@ class Game(Stage):
             try:
                 while True:
                     try:
-                        cmd = input("Podaj kolor z przedziału [1, ..., {}] ".format(self.config["C"]))
+                        cmd = input(u"Podaj kolor z przedziału [1, ..., {}] ".format(self.config["C"]))
                         cmd = int(cmd)
                         assert 1 <= cmd <= self.config["C"]
                         break
@@ -246,32 +284,32 @@ class Game(Stage):
                 self.plansza[t] = cmd
             except KeyboardInterrupt:
                 return False
-            game_time = game_time + 1
+            self.game_time = self.game_time + 1
 
 class Retry(Stage):
     def draw(self, win):
         if win:
-            print("Gratulacje!! Wygrałeś")
+            print(u"Gratulacje!! Wygrałeś")
         else:
-            print("Niestety przegrałeś")
-        print("Dziękujemy za grę!!")
+            print(u"Niestety przegrałeś")
+        print(u"Dziękujemy za grę!!")
 
     def run(self, *args):
         clear_screen()
         self.draw(args[0])
-        cmd = input("Czy chcesz kontynuować?? [T]ak, [N]ie, [Z]mień parametry ")
+        cmd = input(u"Czy chcesz kontynuować?? [T]ak, [N]ie, [Z]mień parametry ")
         return cmd
 
 class GameLogic(object):
     def __init__(self):
         self.stages = dict()
         self._plan = list()
-        self.config = dict(K=5, C=3, L=100, Strategia="1")
+        self.config = dict(K=5, C=3, L=100, Strategia="3")
         self.name_counter = 1
 
     def add_screens(self, *args):
         if len(args) % 2 == 1:
-            raise ValueError("number of args must be event")
+            raise ValueError(u"number of args must be event")
         for name, stage in zip(args[::2], args[1::2]):
             stage.config = self.config
             stage.game_logic = self
@@ -306,10 +344,10 @@ class GameLogic(object):
                 idx = idx - 1
                 s = self._plan[idx]
             else:
-                raise ValueError("Stage not found!!")
+                raise ValueError(u"Stage not found!!")
             self._plan.append(idx)
         else:
-            raise ValueError("stage must be int or str")
+            raise ValueError(u"stage must be int or str")
 
         return self
 
@@ -351,7 +389,7 @@ if __name__ == "__main__":
                .then('level')
                .then('game')
                .then('retry')
-               .choice("Z|z|zmien|Zmien|Zmień|zmień", 1,
+               .choice(u"Z|z|zmien|Zmien|Zmień|zmień", 1,
                        "N|n|No|no|nie|Nie", "exit",
                        "Y|y|Yes|yes|t|T|Tak|tak", 5))
 
