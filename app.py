@@ -159,6 +159,33 @@ class KLength(Stage):
         self.config["K"] = cmd
         return cmd
 
+
+class PSize(Stage):
+    def __init__(self):
+        super().__init__()
+
+    def draw(self):
+        print(u"Wybierz wielkość planszy")
+
+    def run(self, *args, **kwargs):
+        if self.config["Strategia"] != "3":
+            return 0
+        cmd = ""
+        game_length = self.config["L"]
+        while True:
+            clear_screen()
+            self.draw()
+            cmd = input(u"Wpisz liczbę z przedziału [{}, ..., 500]: ".format(game_length))
+            try:
+                cmd = int(cmd)
+                assert game_length <= cmd <= 500
+                break
+            except:
+                pass
+
+        self.config["Size"] = cmd
+        return cmd
+
 class Game(Stage):
     def __init__(self):
         super().__init__()
@@ -225,10 +252,11 @@ class Game(Stage):
         ans = -1
         max_score = 0
         goal = self.config["K"]
+        max_size = self.config["Size"]
         if len(self.plansza) == 0:
-            return randint(0, 500)
+            return randint(0, max_size)
 
-        for p in range(500):
+        for p in range(max_size):
             if p in self.plansza:
                 continue
             score = 0
@@ -328,7 +356,7 @@ class GameLogic(object):
     def __init__(self):
         self.stages = dict()
         self._plan = list()
-        self.config = dict(K=5, C=3, L=10, Strategia="3")
+        self.config = dict(K=5, C=3, L=10, Strategia="3", Size=100)
         self.name_counter = 1
 
     def add_screens(self, *args):
@@ -403,6 +431,7 @@ if __name__ == "__main__":
     game_logic = GameLogic()
     game_logic.add_screens('welcome', Welcome(), 'colors', Colors(),
                            'length', Length(), 'klength', KLength(),
+                           'psize', PSize(),
                            'level', Level(), 'game', Game(),
                             'retry', Retry(), 'exit', Exit())
 
@@ -411,10 +440,11 @@ if __name__ == "__main__":
                .then('length')
                .then('klength')
                .then('level')
+               .then('psize')
                .then('game')
                .then('retry')
                .choice(u"Z|z|zmien|Zmien|Zmień|zmień", 1,
                        "N|n|No|no|nie|Nie", "exit",
-                       "Y|y|Yes|yes|t|T|Tak|tak", 5))
+                       "Y|y|Yes|yes|t|T|Tak|tak", 6))
 
     game_logic.run()
