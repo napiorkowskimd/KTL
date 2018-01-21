@@ -197,7 +197,7 @@ class Game(Stage):
         self.k = 1
 
     def get_color(self, color):
-        return list(map(itemgetter(0), filter(lambda kc: kc[1]==color, self.plansza.items())))
+        return sorted(list(map(itemgetter(0), filter(lambda kc: kc[1]==color, self.plansza.items()))))
 
     def color_iter(self):
         return iter(range(1, self.config["C"] + 1))
@@ -237,14 +237,14 @@ class Game(Stage):
 
     def strategia_po_kolei(self):
         if len(self.plansza) == 0:
-            return 0
+            return 1
         max_t = max(self.plansza)
         return max_t + 1
 
     def strategia_losowa(self):
-        t = randint(0, 2*self.config["L"] + 1)
+        t = randint(1, 2*self.config["L"] + 1)
         while t in self.plansza:
-            t = randint(0, 2*self.config["L"] + 1)
+            t = randint(1, 2*self.config["L"] + 1)
         return t
 
     def strategia_sprytna(self):
@@ -254,9 +254,9 @@ class Game(Stage):
         goal = self.config["K"]
         max_size = self.config["Size"]
         if len(self.plansza) == 0:
-            return randint(0, max_size)
+            return randint(1, max_size)
 
-        for p in range(max_size):
+        for p in range(1, max_size):
             if p in self.plansza:
                 continue
             score = 0
@@ -299,6 +299,13 @@ class Game(Stage):
         end_game = False
         win = False
         while True:
+            if self.ai_win():
+                win = False
+                end_game = True
+            elif self.game_time >= self.config["L"]:
+                win = True
+                end_game = True
+
             if end_game:
                 clear_screen()
                 self.draw()
@@ -308,16 +315,6 @@ class Game(Stage):
                 else:
                     cmd = input(u"Niestety przegrałeś. Naciśnij dowolny przycisk, aby kontynuować")
                     return False
-
-            if self.ai_win():
-                win = False
-                end_game = True
-                continue
-
-            if self.game_time >= self.config["L"]:
-                win = True
-                end_game = True
-                continue
 
             t = strategia()
             self.plansza[t] = None
@@ -340,6 +337,7 @@ class Game(Stage):
                 win = False
                 end_game = True
                 continue
+
             self.game_time = self.game_time + 1
 
 class Retry(Stage):
