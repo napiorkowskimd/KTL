@@ -43,6 +43,41 @@ def get_LLAP(numbers):
 
     return llap
 
+def get_LAP_sequence(numbers):
+    n = len(numbers)
+    if n <= 2:
+        return numbers
+
+    llap = 2
+    lap_seq = []
+    L = [x[:] for x in [[list()]*n]*n]
+    for i in range(n):
+        L[i][-1] = [numbers[i], numbers[-1]]
+
+    for j in range(n-2, 0, -1):
+        i, k = j-1, j+1
+        while i >= 0 and k <= n-1:
+            if numbers[i] + numbers[k] < 2*numbers[j]:
+                k = k+1
+            elif numbers[i] + numbers[k] > 2*numbers[j]:
+                L[i][j] = [numbers[i], numbers[j]]
+                i = i - 1
+            else:
+                L[i][j] = L[j][k] + [numbers[i]]
+                if len(L[i][j]) > llap:
+                    llap = len(L[i][j])
+                    lap_seq = L[i][j]
+                i = i - 1
+                k = k + 1
+
+        while i >= 0:
+            L[i][j] = [numbers[i], numbers[j]]
+            i = i - 1
+
+    return lap_seq
+
+
+
 class Stage(object):
     def __init__(self):
         self.game_config = None
@@ -310,10 +345,12 @@ class Game(Stage):
                 clear_screen()
                 self.draw()
                 if win:
-                    cmd = input(u"Gratulacje!! Wygrałeś. Naciśnij dowolny przycisk, aby kontynuować")
+                    print(u"Gratulacje!! Wygrałeś.")
+                    cmd = input(u"Naciśnij <Enter>, aby kontynuować")
                     return True
                 else:
-                    cmd = input(u"Niestety przegrałeś. Naciśnij dowolny przycisk, aby kontynuować")
+                    print(u"Niestety przegrałeś. Znaleziony ciąg to: {}".format(sorted(get_LAP_sequence(self.get_color(cmd)))))
+                    cmd = input(u"Naciśnij <Enter>, aby kontynuować")
                     return False
 
             t = strategia()
